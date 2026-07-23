@@ -1,21 +1,17 @@
 // ================================================================
-// 🐭 mouseDZ-ai - التطبيق الكامل
-// يعمل باستخدام Puter.js (نموذج المستخدم يدفع)
-// مجاني بالكامل - يعمل للجميع - بدون مفتاح API
+// 🐭 mouseDZ-ai - توليد فيديوهات محلياً
+// بدون أي API خارجي - مجاني بالكامل
 // ================================================================
 
 // ====== STATE ======
 const state = {
     currentTab: 'text2video',
     isGenerating: false,
-    selectedDuration: '10',
+    selectedDuration: '5',
     selectedAspect: '16:9',
-    selectedQuality: 'high',
+    selectedStyle: 'cinematic',
     uploadedImage: null,
     currentVideoUrl: null,
-    gallery: [],
-    isPuterReady: false,
-    isUserLoggedIn: false,
 };
 
 // ====== DOM REFS ======
@@ -31,54 +27,28 @@ const dom = {
     tabContents: $$('.tab-content'),
     durationBtns: $$('#durationGroup .opt-btn'),
     aspectBtns: $$('#aspectGroup .opt-btn'),
-    qualityBtns: $$('#qualityGroup .opt-btn'),
+    styleBtns: $$('#styleGroup .opt-btn'),
     resultWrapper: $('#resultWrapper'),
     videoPlayer: $('#videoPlayer'),
     downloadBtn: $('#downloadBtn'),
-    shareBtn: $('#shareBtn'),
-    saveGalleryBtn: $('#saveGalleryBtn'),
-    resultDuration: $('#resultDuration'),
-    imageUploadArea: $('#imageUploadArea'),
     uploadBox: $('#uploadBox'),
     imageInput: $('#imageInput'),
     imagePreview: $('#imagePreview'),
     previewImg: $('#previewImg'),
     removeImageBtn: $('#removeImageBtn'),
-    imageInfo: $('#imageInfo'),
     progressWrapper: $('#progressWrapper'),
     progressFill: $('#progressFill'),
     progressText: $('#progressText'),
-    charCount: $('#charCount'),
-    statusPuter: $('#statusPuter'),
-    statusUser: $('#statusUser'),
-    galleryGrid: $('#galleryGrid'),
-    resultOverlay: $('#resultOverlay'),
 };
 
 // ====== LOGGING ======
 function addLog(message, type = 'info') {
     const entry = document.createElement('div');
     entry.className = `log-entry ${type}`;
-    const time = new Date().toLocaleTimeString('ar-EG', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-    entry.innerHTML = `
-        <span class="time">[${time}]</span>
-        <span class="message">${message}</span>
-    `;
+    const time = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    entry.innerHTML = `<span class="time">[${time}]</span> <span class="message">${message}</span>`;
     dom.logBox.appendChild(entry);
     dom.logBox.scrollTop = dom.logBox.scrollHeight;
-}
-
-// ====== STATUS UPDATE ======
-function updateStatus(element, icon, text, type = '') {
-    const iconEl = element.querySelector('.status-icon');
-    const textEl = element.querySelector('.status-text');
-    if (iconEl) iconEl.textContent = icon;
-    if (textEl) textEl.textContent = text;
-    element.className = `status-item ${type}`;
 }
 
 // ====== BUTTON STATE ======
@@ -86,13 +56,9 @@ function setLoading(isLoading) {
     state.isGenerating = isLoading;
     dom.generateBtn.classList.toggle('loading', isLoading);
     dom.generateBtn.disabled = isLoading;
-    
-    if (isLoading) {
-        dom.progressWrapper.style.display = 'block';
+    dom.progressWrapper.style.display = isLoading ? 'block' : 'none';
+    if (!isLoading) {
         dom.progressFill.style.width = '0%';
-        dom.progressText.textContent = '⏳ جارٍ التوليد...';
-    } else {
-        dom.progressWrapper.style.display = 'none';
     }
 }
 
@@ -102,19 +68,12 @@ function updateProgress(value, text) {
 }
 
 // ====== RESULT ======
-function showResult(url, duration = '10') {
+function showResult(url) {
     state.currentVideoUrl = url;
     dom.videoPlayer.src = url;
     dom.resultWrapper.classList.add('show');
-    dom.resultDuration.textContent = `⏱️ ${duration} ث`;
     dom.videoPlayer.play().catch(() => {});
     addLog('🎬 تم توليد الفيديو بنجاح!', 'success');
-}
-
-function hideResult() {
-    dom.resultWrapper.classList.remove('show');
-    dom.videoPlayer.src = '';
-    state.currentVideoUrl = null;
 }
 
 // ====== DOWNLOAD ======
@@ -125,92 +84,12 @@ dom.downloadBtn.addEventListener('click', () => {
     }
     const a = document.createElement('a');
     a.href = state.currentVideoUrl;
-    a.download = `mouseDZ_ai_video_${Date.now()}.mp4`;
+    a.download = `mouseDZ_ai_${Date.now()}.webm`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     addLog('⬇️ جارٍ تحميل الفيديو...', 'info');
 });
-
-// ====== SHARE ======
-dom.shareBtn.addEventListener('click', async () => {
-    if (!state.currentVideoUrl) {
-        addLog('❌ لا يوجد فيديو للمشاركة', 'error');
-        return;
-    }
-    try {
-        const blob = await fetch(state.currentVideoUrl).then(r => r.blob());
-        const file = new File([blob], 'video.mp4', { type: 'video/mp4' });
-        if (navigator.share) {
-            await navigator.share({
-                title: '🐭 mouseDZ-ai',
-                text: 'شاهد الفيديو الذي توليته باستخدام mouseDZ-ai!',
-                files: [file],
-            });
-            addLog('📤 تمت المشاركة بنجاح', 'success');
-        } else {
-            await navigator.clipboard.writeText(state.currentVideoUrl);
-            addLog('📋 تم نسخ الرابط للحافظة', 'success');
-        }
-    } catch (error) {
-        if (error.name !== 'AbortError') {
-            addLog(`❌ فشل المشاركة: ${error.message}`, 'error');
-        }
-    }
-});
-
-// ====== SAVE TO GALLERY ======
-dom.saveGalleryBtn.addEventListener('click', () => {
-    if (!state.currentVideoUrl) {
-        addLog('❌ لا يوجد فيديو للحفظ', 'error');
-        return;
-    }
-    const item = {
-        id: Date.now(),
-        url: state.currentVideoUrl,
-        prompt: dom.prompt.value.trim() || dom.promptImage.value.trim(),
-        duration: state.selectedDuration,
-        date: new Date().toLocaleDateString('ar-EG'),
-    };
-    state.gallery.unshift(item);
-    renderGallery();
-    addLog('💾 تم حفظ الفيديو في المعرض', 'success');
-});
-
-// ====== GALLERY ======
-function renderGallery() {
-    if (state.gallery.length === 0) {
-        dom.galleryGrid.innerHTML = `
-            <div class="gallery-empty">
-                <span>🎬</span>
-                <p>لا توجد أعمال بعد. قم بتوليد فيديو وسيظهر هنا!</p>
-            </div>
-        `;
-        return;
-    }
-    dom.galleryGrid.innerHTML = state.gallery.map(item => `
-        <div class="gallery-item" data-id="${item.id}">
-            <video src="${item.url}" muted></video>
-            <div class="gallery-overlay">
-                ${item.prompt ? item.prompt.substring(0, 30) + (item.prompt.length > 30 ? '...' : '') : 'بدون وصف'}
-            </div>
-        </div>
-    `).join('');
-
-    // إضافة حدث النقر لتشغيل الفيديو
-    dom.galleryGrid.querySelectorAll('.gallery-item').forEach(el => {
-        const video = el.querySelector('video');
-        el.addEventListener('click', () => {
-            if (video.paused) {
-                video.play();
-            } else {
-                video.pause();
-            }
-        });
-        el.addEventListener('mouseenter', () => video.play());
-        el.addEventListener('mouseleave', () => video.pause());
-    });
-}
 
 // ====== IMAGE UPLOAD ======
 dom.uploadBox.addEventListener('click', () => dom.imageInput.click());
@@ -243,19 +122,12 @@ function handleImageFile(file) {
         addLog('❌ حجم الصورة كبير جداً (الحد 5 ميجابايت)', 'error');
         return;
     }
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-        addLog('❌ نوع الصورة غير مدعوم (JPG, PNG, WEBP)', 'error');
-        return;
-    }
-
     const reader = new FileReader();
     reader.onload = function(e) {
         state.uploadedImage = e.target.result;
         dom.previewImg.src = state.uploadedImage;
         dom.imagePreview.style.display = 'block';
         dom.uploadBox.style.display = 'none';
-        dom.imageInfo.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} كيلوبايت)`;
         addLog(`✅ تم رفع الصورة: ${file.name}`, 'success');
     };
     reader.readAsDataURL(file);
@@ -266,7 +138,6 @@ dom.removeImageBtn.addEventListener('click', () => {
     dom.imagePreview.style.display = 'none';
     dom.uploadBox.style.display = 'block';
     dom.imageInput.value = '';
-    dom.imageInfo.textContent = '';
     addLog('🔄 تم إزالة الصورة', 'info');
 });
 
@@ -275,33 +146,19 @@ dom.tabBtns.forEach(btn => {
     btn.addEventListener('click', function() {
         dom.tabBtns.forEach(b => b.classList.remove('active'));
         this.classList.add('active');
-
+        state.currentTab = this.dataset.tab;
         dom.tabContents.forEach(c => c.classList.remove('active'));
         const target = document.getElementById(`tab-${this.dataset.tab}`);
         if (target) target.classList.add('active');
-
-        state.currentTab = this.dataset.tab;
-
-        // إظهار/إخفاء رفع الصورة
-        dom.imageUploadArea.style.display = state.currentTab === 'image2video' ? 'block' : 'none';
-        
-        // تغيير نص الزر
+        dom.resultWrapper.classList.remove('show');
+        dom.videoPlayer.src = '';
+        state.currentVideoUrl = null;
         const labels = {
             'text2video': '🚀 توليد فيديو من نص',
-            'image2video': '🖼️ توليد فيديو من صورة',
-            'gallery': '🏆 معرض الأعمال'
+            'image2video': '🖼️ توليد فيديو من صورة'
         };
         dom.generateBtn.querySelector('.btn-text').textContent = labels[state.currentTab] || '🚀 توليد';
-
-        // إخفاء النتيجة
-        hideResult();
-
-        const tabNames = {
-            'text2video': 'نص إلى فيديو',
-            'image2video': 'صورة إلى فيديو',
-            'gallery': 'معرض الأعمال'
-        };
-        addLog(`🔄 التبديل إلى: ${tabNames[state.currentTab]}`, 'info');
+        addLog(`🔄 التبديل إلى: ${state.currentTab === 'text2video' ? 'نص إلى فيديو' : 'صورة إلى فيديو'}`, 'info');
     });
 });
 
@@ -318,213 +175,143 @@ function setupOptions(buttons, stateKey) {
 }
 setupOptions(dom.durationBtns, 'selectedDuration');
 setupOptions(dom.aspectBtns, 'selectedAspect');
-setupOptions(dom.qualityBtns, 'selectedQuality');
+setupOptions(dom.styleBtns, 'selectedStyle');
 
-// ====== CHAR COUNTER ======
-dom.prompt.addEventListener('input', () => {
-    dom.charCount.textContent = dom.prompt.value.length;
-});
+// ================================================================
+// 🎯 قلب المشروع: توليد الفيديو باستخدام Canvas
+// ================================================================
 
-// ====== PUTER CHECK ======
-async function checkPuter() {
-    try {
-        if (typeof puter === 'undefined') {
-            updateStatus(dom.statusPuter, '❌', 'Puter.js غير محمّل', 'error');
-            addLog('❌ Puter.js غير محمّل. حاول تحديث الصفحة', 'error');
-            return;
-        }
-        
-        updateStatus(dom.statusPuter, '✅', 'Puter.js جاهز', 'success');
-        state.isPuterReady = true;
-        addLog('✅ Puter.js جاهز للاستخدام', 'success');
+function getDimensions(aspect) {
+    const sizes = {
+        '16:9': { width: 854, height: 480 },
+        '9:16': { width: 480, height: 854 },
+        '1:1': { width: 512, height: 512 },
+    };
+    return sizes[aspect] || sizes['16:9'];
+}
 
-        // التحقق من تسجيل الدخول
-        try {
-            const user = await puter.auth.getUser();
-            if (user) {
-                state.isUserLoggedIn = true;
-                updateStatus(dom.statusUser, '👤', `مرحباً ${user.username || 'المستخدم'}`, 'success');
-                addLog(`👤 مرحباً ${user.username || 'المستخدم'}!`, 'success');
-            } else {
-                updateStatus(dom.statusUser, '🔑', 'غير مسجل (سيُطلب تسجيل الدخول عند التوليد)', '');
-                addLog('ℹ️ سيُطلب منك تسجيل الدخول إلى Puter عند التوليد', 'info');
+function getStyleColors(style) {
+    const styles = {
+        cinematic: { bg1: '#0a1628', bg2: '#1a2a4a', accent1: '#00d4ff', accent2: '#a855f7', text: '#ffffff' },
+        anime: { bg1: '#1a0a2a', bg2: '#2a1a4a', accent1: '#ff6bff', accent2: '#00ffcc', text: '#ffe6ff' },
+        vintage: { bg1: '#2a1a0a', bg2: '#4a2a1a', accent1: '#ffd93d', accent2: '#ff6b6b', text: '#ffeedd' },
+    };
+    return styles[style] || styles.cinematic;
+}
+
+// ====== توليد فيديو من النص ======
+async function generateTextVideo(prompt, duration, aspect, style) {
+    const dims = getDimensions(aspect);
+    const colors = getStyleColors(style);
+    const fps = 30;
+    const totalFrames = duration * fps;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = dims.width;
+    canvas.height = dims.height;
+    const ctx = canvas.getContext('2d');
+
+    const stream = canvas.captureStream(fps);
+    const recorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp9',
+    });
+
+    const chunks = [];
+    recorder.ondataavailable = (e) => chunks.push(e.data);
+
+    return new Promise((resolve, reject) => {
+        recorder.start();
+
+        let frame = 0;
+        const interval = setInterval(() => {
+            if (frame >= totalFrames) {
+                clearInterval(interval);
+                recorder.stop();
+                return;
             }
-        } catch (e) {
-            updateStatus(dom.statusUser, '🔑', 'غير مسجل', '');
-        }
-    } catch (error) {
-        updateStatus(dom.statusPuter, '❌', `خطأ: ${error.message}`, 'error');
-        addLog(`⚠️ خطأ في Puter: ${error.message}`, 'error');
-    }
-}
 
-// ====== MAIN GENERATE ======
-async function handleGenerate() {
-    if (state.isGenerating) return;
-    
-    // التحقق من وضع المعرض
-    if (state.currentTab === 'gallery') {
-        addLog('🏆 هذا هو معرض الأعمال', 'info');
-        return;
-    }
+            const progress = frame / totalFrames;
+            updateProgress((progress) * 100, `⏳ توليد الإطار ${frame + 1}/${totalFrames}`);
 
-    // الحصول على النص
-    const prompt = state.currentTab === 'text2video' 
-        ? dom.prompt.value.trim() 
-        : dom.promptImage.value.trim();
+            // ====== رسم الخلفية ======
+            const gradient = ctx.createLinearGradient(0, 0, dims.width, dims.height);
+            const hue1 = (progress * 60 + 220) % 360;
+            const hue2 = (progress * 60 + 280) % 360;
+            gradient.addColorStop(0, `hsl(${hue1}, 70%, 15%)`);
+            gradient.addColorStop(0.5, `hsl(${(hue1 + hue2) / 2}, 60%, 25%)`);
+            gradient.addColorStop(1, `hsl(${hue2}, 70%, 15%)`);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, dims.width, dims.height);
 
-    if (!prompt || prompt.length < 3) {
-        addLog('❌ الرجاء إدخال وصف (3 أحرف على الأقل)', 'error');
-        return;
-    }
-
-    // التحقق من الصورة
-    if (state.currentTab === 'image2video' && !state.uploadedImage) {
-        addLog('❌ يرجى رفع صورة أولاً', 'error');
-        return;
-    }
-
-    // التحقق من Puter
-    if (!state.isPuterReady) {
-        addLog('❌ Puter.js غير جاهز. حاول تحديث الصفحة', 'error');
-        return;
-    }
-
-    setLoading(true);
-    hideResult();
-
-    try {
-        const modeNames = {
-            'text2video': 'فيديو من نص',
-            'image2video': 'فيديو من صورة'
-        };
-        addLog(`🚀 بدء توليد ${modeNames[state.currentTab]}...`, 'info');
-        addLog(`📝 البرومبت: ${prompt.substring(0, 60)}...`, 'info');
-
-        // تحضير البيانات
-        const options = {
-            prompt: prompt,
-            duration: parseInt(state.selectedDuration),
-            aspect_ratio: state.selectedAspect,
-        };
-
-        if (state.currentTab === 'image2video' && state.uploadedImage) {
-            options.image = state.uploadedImage;
-        }
-
-        // محاكاة التقدم
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            progress += Math.random() * 8 + 2;
-            if (progress > 95) progress = 95;
-            updateProgress(progress, `⏳ جارٍ التوليد... ${Math.round(progress)}%`);
-        }, 500);
-
-        addLog('⏳ جارٍ التوليد عبر Puter.ai (قد يستغرق 1-3 دقائق)...', 'info');
-
-        // استدعاء Puter.js
-        let result;
-        if (state.currentTab === 'image2video') {
-            result = await puter.ai.img2vid(options);
-        } else {
-            result = await puter.ai.txt2vid(options);
-        }
-
-        clearInterval(progressInterval);
-        updateProgress(100, '✅ تم التوليد!');
-
-        // النتيجة
-        if (result && result.url) {
-            showResult(result.url, state.selectedDuration);
-        } else if (result && typeof result === 'string') {
-            showResult(result, state.selectedDuration);
-        } else {
-            throw new Error('لم يتم استلام رابط الفيديو');
-        }
-
-    } catch (error) {
-        console.error('خطأ:', error);
-
-        if (error.message.includes('login') || error.message.includes('authenticated')) {
-            addLog('❌ يرجى تسجيل الدخول إلى Puter', 'error');
-            addLog('💡 ستظهر نافذة تسجيل الدخول تلقائياً', 'info');
-            try {
-                await puter.auth.signIn();
-                addLog('✅ تم تسجيل الدخول! حاول مرة أخرى', 'success');
-            } catch (e) {
-                addLog('⚠️ لم يتم فتح نافذة تسجيل الدخول. حاول تحديث الصفحة', 'error');
+            // ====== رسم دوائر متحركة ======
+            for (let i = 0; i < 15; i++) {
+                const x = (i * 60 + frame * 2) % dims.width;
+                const y = (i * 40 + frame * 1.5) % dims.height;
+                const radius = 15 + Math.sin(frame * 0.02 + i) * 8;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${(hue1 + i * 20) % 360}, 80%, 60%, 0.2)`;
+                ctx.fill();
             }
-        } else if (error.message.includes('insufficient')) {
-            addLog('❌ رصيد غير كافٍ. يرجى شحن حساب Puter أو إنشاء حساب جديد', 'error');
-        } else {
-            addLog(`❌ فشل التوليد: ${error.message}`, 'error');
-        }
-    } finally {
-        setLoading(false);
-        addLog('⏳ جاهز لتوليد جديد', 'info');
-    }
-}
 
-// ====== EVENTS ======
-dom.generateBtn.addEventListener('click', handleGenerate);
+            // ====== رسم النص ======
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 20;
 
-// Ctrl+Enter
-dom.prompt.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (state.currentTab === 'text2video') handleGenerate();
-    }
-});
+            // النص الرئيسي
+            const fontSize = Math.min(dims.width, dims.height) / 12;
+            ctx.font = `bold ${fontSize}px 'Segoe UI', system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
 
-dom.promptImage.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (state.currentTab === 'image2video') handleGenerate();
-    }
-});
+            const text = prompt.length > 60 ? prompt.substring(0, 57) + '...' : prompt;
+            const words = text.split(' ');
+            let lines = [];
+            let currentLine = '';
+            for (let word of words) {
+                if ((currentLine + ' ' + word).length < 40) {
+                    currentLine += (currentLine ? ' ' : '') + word;
+                } else {
+                    if (currentLine) lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            if (currentLine) lines.push(currentLine);
 
-// ====== LOAD GALLERY FROM LOCAL STORAGE ======
-function loadGallery() {
-    try {
-        const saved = localStorage.getItem('mouseDZ_gallery');
-        if (saved) {
-            state.gallery = JSON.parse(saved);
-            renderGallery();
-        }
-    } catch (e) {
-        console.warn('Failed to load gallery:', e);
-    }
-}
+            const lineHeight = fontSize * 1.4;
+            const startY = dims.height / 2 - (lines.length - 1) * lineHeight / 2;
 
-function saveGallery() {
-    try {
-        localStorage.setItem('mouseDZ_gallery', JSON.stringify(state.gallery));
-    } catch (e) {
-        console.warn('Failed to save gallery:', e);
-    }
-}
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 15;
 
-// ====== INIT ======
-async function init() {
-    addLog('🐭 جارٍ تهيئة mouseDZ-ai...', 'info');
-    addLog('🔑 نسخة بدون مفتاح API - تعمل للجميع', 'success');
-    addLog(`⏱️ المدة: ${state.selectedDuration} ثوان | 📐 النسبة: ${state.selectedAspect}`, 'info');
-    addLog('💡 اضغط Ctrl+Enter للتوليد السريع', 'info');
+            lines.forEach((line, i) => {
+                const y = startY + i * lineHeight;
+                // ظل
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillText(line, dims.width / 2 + 2, y + 2);
+                // النص الرئيسي
+                const gradientText = ctx.createLinearGradient(0, y - fontSize / 2, 0, y + fontSize / 2);
+                gradientText.addColorStop(0, colors.accent1);
+                gradientText.addColorStop(1, colors.accent2);
+                ctx.fillStyle = gradientText;
+                ctx.fillText(line, dims.width / 2, y);
+            });
 
-    // تحميل المعرض
-    loadGallery();
+            // ====== إطار سينمائي ======
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = `rgba(255, 255, 255, 0.05)`;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(10, 10, dims.width - 20, dims.height - 20);
 
-    // التحقق من Puter
-    setTimeout(checkPuter, 1000);
+            // شريط سفلي
+            ctx.fillStyle = `rgba(0, 0, 0, 0.4)`;
+            ctx.fillRect(0, dims.height - 40, dims.width, 40);
+            ctx.fillStyle = `rgba(255, 255, 255, 0.3)`;
+            ctx.font = `12px 'Segoe UI', sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`🐭 mouseDZ-ai · ${style} · ${duration}s`, 20, dims.height - 20);
 
-    // إعداد الـ char counter
-    dom.charCount.textContent = dom.prompt.value.length;
-
-    // Auto-save gallery
-    setInterval(saveGallery, 10000);
-
-    addLog('✅ التطبيق جاهز!', 'success');
-}
-
-// تشغيل
-init();
+            // رقم الإطار
+            ctx.textAlign = 'right';
+            ctx.fillText(`#
