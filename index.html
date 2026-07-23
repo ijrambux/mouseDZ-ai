@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🐭 mouseDZ-ai - توليد فيديوهات احترافية</title>
+    <meta name="description" content="توليد فيديوهات احترافية بالذكاء الاصطناعي من النصوص والصور - مجاني بالكامل" />
+    <link rel="stylesheet" href="style.css" />
+    
+    <!-- ====== Open Graph للتواصل الاجتماعي ====== -->
+    <meta property="og:title" content="🐭 mouseDZ-ai - توليد فيديوهات احترافية" />
+    <meta property="og:description" content="توليد فيديوهات احترافية بالذكاء الاصطناعي من النصوص والصور" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mousedz-ai.vercel.app" />
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- ====== HEADER ====== -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-wrapper">
+                    <span class="logo-emoji">🐭</span>
+                    <h1 class="logo">mouse<span class="logo-highlight">DZ</span>-ai</h1>
+                </div>
+                <p class="subtitle">توليد فيديوهات احترافية بالذكاء الاصطناعي</p>
+                <div class="badges">
+                    <span class="badge free">✨ مجاني بالكامل</span>
+                    <span class="badge no-key">🔑 بدون مفتاح API</span>
+                    <span class="badge beta">🧪 نسخة تجريبية</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ====== TABS ====== -->
+        <nav class="tabs" role="tablist">
+            <button class="tab-btn active" data-tab="text2video" role="tab">
+                <span class="tab-icon">📹</span>
+                <span class="tab-label">نص إلى فيديو</span>
+            </button>
+            <button class="tab-btn" data-tab="image2video" role="tab">
+                <span class="tab-icon">🖼️</span>
+                <span class="tab-label">صورة إلى فيديو</span>
+            </button>
+            <button class="tab-btn" data-tab="gallery" role="tab">
+                <span class="tab-icon">🏆</span>
+                <span class="tab-label">معرض الأعمال</span>
+            </button>
+        </nav>
+
+        <!-- ====== TAB CONTENT: نص إلى فيديو ====== -->
+        <div class="tab-content active" id="tab-text2video">
+            <div class="form-group">
+                <label for="promptInput">
+                    <span class="label-icon">📝</span>
+                    وصف الفيديو
+                </label>
+                <textarea 
+                    id="promptInput" 
+                    placeholder="مثلاً: غروب شمس فوق جبال الأطلس، بأسلوب سينمائي، ألوان دافئة..."
+                    rows="4"
+                >غروب شمس فوق جبال الأطلس، بأسلوب سينمائي، ألوان دافئة</textarea>
+                <div class="char-counter">
+                    <span id="charCount">0</span> / 500 حرف
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== TAB CONTENT: صورة إلى فيديو ====== -->
+        <div class="tab-content" id="tab-image2video">
+            <div class="form-group">
+                <label for="promptInputImage">
+                    <span class="label-icon">📝</span>
+                    وصف الفيديو
+                </label>
+                <textarea 
+                    id="promptInputImage" 
+                    placeholder="مثلاً: تحريك الصورة بسلاسة، مع تأثيرات ضوئية..."
+                    rows="3"
+                >تحريك الصورة بسلاسة، مع تأثيرات ضوئية</textarea>
+            </div>
+
+            <div class="image-upload-area" id="imageUploadArea">
+                <div class="upload-box" id="uploadBox">
+                    <span class="upload-icon">🖼️</span>
+                    <p><strong>انقر أو اسحب</strong> صورة هنا</p>
+                    <span class="upload-hint">يدعم JPG, PNG, WEBP (حتى 5 ميجابايت)</span>
+                    <input type="file" id="imageInput" accept="image/*" />
+                </div>
+                <div class="image-preview" id="imagePreview">
+                    <img id="previewImg" src="#" alt="معاينة الصورة" />
+                    <button class="remove-image" id="removeImageBtn" title="إزالة الصورة">✕</button>
+                    <div class="image-info" id="imageInfo"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== TAB CONTENT: معرض الأعمال ====== -->
+        <div class="tab-content" id="tab-gallery">
+            <div class="gallery-header">
+                <h3>🏆 أعمال تم توليدها</h3>
+                <p>استلهم من هذه الأعمال التي تم إنشاؤها بواسطة mouseDZ-ai</p>
+            </div>
+            <div class="gallery-grid" id="galleryGrid">
+                <!-- سيتم إضافة الأعمال تلقائياً عبر JavaScript -->
+                <div class="gallery-empty">
+                    <span>🎬</span>
+                    <p>لا توجد أعمال بعد. قم بتوليد فيديو وسيظهر هنا!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== OPTIONS ====== -->
+        <div class="options-row">
+            <div class="option-group">
+                <span class="option-label">⏱️ المدة</span>
+                <div class="option-buttons" id="durationGroup">
+                    <button class="opt-btn" data-value="5">5 ث</button>
+                    <button class="opt-btn active" data-value="10">10 ث</button>
+                    <button class="opt-btn" data-value="15">15 ث</button>
+                </div>
+            </div>
+            <div class="option-group">
+                <span class="option-label">📐 نسبة الأبعاد</span>
+                <div class="option-buttons" id="aspectGroup">
+                    <button class="opt-btn active" data-value="16:9">16:9</button>
+                    <button class="opt-btn" data-value="9:16">9:16</button>
+                    <button class="opt-btn" data-value="1:1">1:1</button>
+                </div>
+            </div>
+            <div class="option-group">
+                <span class="option-label">🎨 الجودة</span>
+                <div class="option-buttons" id="qualityGroup">
+                    <button class="opt-btn" data-value="standard">قياسية</button>
+                    <button class="opt-btn active" data-value="high">عالية</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== GENERATE BUTTON ====== -->
+        <button class="generate-btn" id="generateBtn">
+            <span class="btn-text">🚀 توليد الفيديو</span>
+            <span class="spinner"></span>
+            <span class="btn-shortcut">Ctrl+Enter</span>
+        </button>
+
+        <!-- ====== PROGRESS ====== -->
+        <div class="progress-wrapper" id="progressWrapper" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">جارٍ التوليد...</div>
+        </div>
+
+        <!-- ====== RESULT ====== -->
+        <div class="result-wrapper" id="resultWrapper">
+            <div class="result-container">
+                <video id="videoPlayer" controls></video>
+                <div class="result-overlay" id="resultOverlay">
+                    <span class="result-badge">✨ جديد</span>
+                </div>
+            </div>
+            <div class="result-controls">
+                <div class="result-info">
+                    <span class="result-label">🐭 mouseDZ-ai</span>
+                    <span class="result-duration" id="resultDuration">⏱️ 10 ث</span>
+                </div>
+                <div class="result-actions">
+                    <button class="action-btn share-btn" id="shareBtn" title="مشاركة">📤</button>
+                    <button class="action-btn save-btn" id="saveGalleryBtn" title="حفظ في المعرض">💾</button>
+                    <button class="download-btn" id="downloadBtn">⬇️ تحميل</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== STATUS ====== -->
+        <div class="status-box" id="statusBox">
+            <div class="status-item" id="statusPuter">
+                <span class="status-icon">🔍</span>
+                <span class="status-text">جارٍ التحقق من Puter...</span>
+            </div>
+            <div class="status-item" id="statusUser">
+                <span class="status-icon">👤</span>
+                <span class="status-text">غير مسجل</span>
+            </div>
+        </div>
+
+        <!-- ====== LOG ====== -->
+        <div class="log-box" id="logBox">
+            <div class="log-entry info">
+                <span class="time">[الآن]</span>
+                <span class="message">🐭 مرحباً بك في mouseDZ-ai!</span>
+            </div>
+            <div class="log-entry info">
+                <span class="time">[الآن]</span>
+                <span class="message">📝 اكتب وصفاً واحصل على فيديو احترافي مجاناً</span>
+            </div>
+        </div>
+
+        <!-- ====== FOOTER ====== -->
+        <footer class="footer">
+            <p>
+                🐭 mouseDZ-ai · 
+                <span class="footer-highlight">مجاني بالكامل</span> · 
+                <a href="https://github.com/your-username/mouseDZ-ai" target="_blank">GitHub</a>
+            </p>
+        </footer>
+    </div>
+
+    <!-- ====== Puter.js ====== -->
+    <script src="https://js.puter.com/v2/"></script>
+    
+    <!-- ====== script.js ====== -->
+    <script src="script.js"></script>
+</body>
+</html>
