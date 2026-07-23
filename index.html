@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="container">
-        <!-- HEADER -->
+        <!-- ===== HEADER ===== -->
         <header class="header">
             <div class="logo-wrapper">
                 <span class="logo-emoji">🐭</span>
@@ -21,13 +21,13 @@
             </div>
         </header>
 
-        <!-- TABS -->
+        <!-- ===== TABS ===== -->
         <nav class="tabs">
             <button class="tab-btn active" data-tab="text2video">📹 نص إلى فيديو</button>
             <button class="tab-btn" data-tab="image2video">🖼️ صورة إلى فيديو</button>
         </nav>
 
-        <!-- TAB: نص إلى فيديو -->
+        <!-- ===== TAB: نص إلى فيديو ===== -->
         <div class="tab-content active" id="tab-text2video">
             <div class="form-group">
                 <label for="promptInput">📝 وصف الفيديو</label>
@@ -35,7 +35,7 @@
             </div>
         </div>
 
-        <!-- TAB: صورة إلى فيديو -->
+        <!-- ===== TAB: صورة إلى فيديو ===== -->
         <div class="tab-content" id="tab-image2video">
             <div class="form-group">
                 <label for="promptInputImage">📝 وصف الحركة</label>
@@ -55,7 +55,7 @@
             </div>
         </div>
 
-        <!-- OPTIONS -->
+        <!-- ===== OPTIONS ===== -->
         <div class="options-row">
             <div class="option-group">
                 <span class="option-label">⏱️ المدة</span>
@@ -75,13 +75,13 @@
             </div>
         </div>
 
-        <!-- GENERATE -->
+        <!-- ===== GENERATE BUTTON ===== -->
         <button class="generate-btn" id="generateBtn">
             <span class="btn-text">🚀 توليد الفيديو بالذكاء الاصطناعي</span>
             <span class="spinner"></span>
         </button>
 
-        <!-- PROGRESS -->
+        <!-- ===== PROGRESS ===== -->
         <div class="progress-wrapper" id="progressWrapper" style="display: none;">
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill"></div>
@@ -89,7 +89,7 @@
             <div class="progress-text" id="progressText">جارٍ التوليد...</div>
         </div>
 
-        <!-- RESULT -->
+        <!-- ===== RESULT ===== -->
         <div class="result-wrapper" id="resultWrapper">
             <video id="videoPlayer" controls></video>
             <div class="result-controls">
@@ -98,16 +98,16 @@
             </div>
         </div>
 
-        <!-- LOG -->
+        <!-- ===== LOG ===== -->
         <div class="log-box" id="logBox">
             <div class="log-entry info"><span class="time">[الآن]</span> 🐭 mouseDZ-ai - ذكاء اصطناعي حقيقي</div>
             <div class="log-entry info"><span class="time">[الآن]</span> 🔑 المفتاح جاهز - ابدأ التوليد</div>
         </div>
 
-        <!-- FOOTER -->
+        <!-- ===== FOOTER ===== -->
         <footer class="footer">
             <p>🐭 mouseDZ-ai · <span class="footer-highlight">مدعوم بـ Replicate AI</span></p>
-            <a href="https://x.com/mouse0000000" target="_blank" class="social-link">
+            <a href="https://x.com/mouse0000000" target="_blank" class="social-link" title="تواصل معي على X">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                 </svg>
