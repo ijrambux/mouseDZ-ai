@@ -3,43 +3,43 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🐭 mouseDZ-ai - توليد فيديوهات احترافية</title>
+    <title>🐭 mouseDZ-ai - توليد فيديوهات بالذكاء الاصطناعي</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
     <div class="container">
-        <!-- ===== HEADER ===== -->
+        <!-- HEADER -->
         <header class="header">
             <div class="logo-wrapper">
                 <span class="logo-emoji">🐭</span>
                 <h1 class="logo">mouse<span class="logo-highlight">DZ</span>-ai</h1>
             </div>
-            <p class="subtitle">توليد فيديوهات احترافية بالذكاء الاصطناعي</p>
+            <p class="subtitle">توليد فيديوهات بالذكاء الاصطناعي</p>
             <div class="badges">
-                <span class="badge free">✨ مجاني بالكامل</span>
-                <span class="badge local">💻 يعمل محلياً</span>
+                <span class="badge free">✨ مجاني للاختبار</span>
+                <span class="badge ai">🧠 ذكاء اصطناعي حقيقي</span>
             </div>
         </header>
 
-        <!-- ===== TABS ===== -->
+        <!-- TABS -->
         <nav class="tabs">
             <button class="tab-btn active" data-tab="text2video">📹 نص إلى فيديو</button>
             <button class="tab-btn" data-tab="image2video">🖼️ صورة إلى فيديو</button>
         </nav>
 
-        <!-- ===== TAB: نص إلى فيديو ===== -->
+        <!-- TAB: نص إلى فيديو -->
         <div class="tab-content active" id="tab-text2video">
             <div class="form-group">
                 <label for="promptInput">📝 وصف الفيديو</label>
-                <textarea id="promptInput" rows="4" placeholder="مثلاً: غروب شمس فوق جبال، بأسلوب سينمائي">غروب شمس فوق جبال الأطلس، بأسلوب سينمائي</textarea>
+                <textarea id="promptInput" rows="4" placeholder="مثلاً: غروب شمس فوق جبال، بأسلوب سينمائي، جودة 4K">غروب شمس فوق جبال الأطلس، بأسلوب سينمائي، جودة 4K</textarea>
             </div>
         </div>
 
-        <!-- ===== TAB: صورة إلى فيديو ===== -->
+        <!-- TAB: صورة إلى فيديو -->
         <div class="tab-content" id="tab-image2video">
             <div class="form-group">
                 <label for="promptInputImage">📝 وصف الحركة</label>
-                <textarea id="promptInputImage" rows="3" placeholder="مثلاً: تحريك الصورة بسلاسة مع تأثيرات">تحريك الصورة بسلاسة مع تأثيرات ضوئية</textarea>
+                <textarea id="promptInputImage" rows="3" placeholder="مثلاً: تحريك الصورة بسلاسة مع تأثيرات ضوئية">تحريك الصورة بسلاسة مع تأثيرات ضوئية درامية</textarea>
             </div>
             <div class="image-upload-area">
                 <div class="upload-box" id="uploadBox">
@@ -55,7 +55,7 @@
             </div>
         </div>
 
-        <!-- ===== OPTIONS ===== -->
+        <!-- OPTIONS -->
         <div class="options-row">
             <div class="option-group">
                 <span class="option-label">⏱️ المدة</span>
@@ -73,23 +73,15 @@
                     <button class="opt-btn" data-value="1:1">1:1</button>
                 </div>
             </div>
-            <div class="option-group">
-                <span class="option-label">🎨 الأسلوب</span>
-                <div class="option-buttons" id="styleGroup">
-                    <button class="opt-btn active" data-value="cinematic">سينمائي</button>
-                    <button class="opt-btn" data-value="anime">أنمي</button>
-                    <button class="opt-btn" data-value="vintage">كلاسيكي</button>
-                </div>
-            </div>
         </div>
 
-        <!-- ===== GENERATE BUTTON ===== -->
+        <!-- GENERATE -->
         <button class="generate-btn" id="generateBtn">
-            <span class="btn-text">🚀 توليد الفيديو</span>
+            <span class="btn-text">🚀 توليد الفيديو بالذكاء الاصطناعي</span>
             <span class="spinner"></span>
         </button>
 
-        <!-- ===== PROGRESS ===== -->
+        <!-- PROGRESS -->
         <div class="progress-wrapper" id="progressWrapper" style="display: none;">
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill"></div>
@@ -97,7 +89,7 @@
             <div class="progress-text" id="progressText">جارٍ التوليد...</div>
         </div>
 
-        <!-- ===== RESULT ===== -->
+        <!-- RESULT -->
         <div class="result-wrapper" id="resultWrapper">
             <video id="videoPlayer" controls></video>
             <div class="result-controls">
@@ -106,28 +98,17 @@
             </div>
         </div>
 
-        <!-- ===== STATUS ===== -->
-        <div class="status-box">
-            <div class="status-item success">
-                <span class="status-icon">✅</span>
-                <span class="status-text">يعمل محلياً</span>
-            </div>
-        </div>
-
-        <!-- ===== LOG ===== -->
+        <!-- LOG -->
         <div class="log-box" id="logBox">
-            <div class="log-entry info"><span class="time">[الآن]</span> 🐭 مرحباً بك في mouseDZ-ai!</div>
-            <div class="log-entry info"><span class="time">[الآن]</span> 📝 اكتب وصفاً واحصل على فيديو مجاناً</div>
+            <div class="log-entry info"><span class="time">[الآن]</span> 🐭 mouseDZ-ai - ذكاء اصطناعي حقيقي</div>
+            <div class="log-entry info"><span class="time">[الآن]</span> 🔑 المفتاح جاهز - ابدأ التوليد</div>
         </div>
 
-        <!-- ===== FOOTER ===== -->
+        <!-- FOOTER -->
         <footer class="footer">
-            <p>
-                🐭 mouseDZ-ai ·
-                <span class="footer-highlight">مجاني بالكامل</span>
-            </p>
-            <a href="https://x.com/mouse0000000" target="_blank" class="social-link" title="تواصل معي على X">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <p>🐭 mouseDZ-ai · <span class="footer-highlight">مدعوم بـ Replicate AI</span></p>
+            <a href="https://x.com/mouse0000000" target="_blank" class="social-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                 </svg>
                 <span>تواصل معي</span>
