@@ -89,10 +89,10 @@ body {
     color: #00d4ff;
 }
 
-.badge.beta {
-    background: rgba(255, 200, 0, 0.1);
-    border: 1px solid rgba(255, 200, 0, 0.2);
-    color: #ffd700;
+.badge.local {
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    color: #a855f7;
 }
 
 /* ===== TABS ===== */
@@ -251,7 +251,7 @@ body {
 
 .option-group {
     flex: 1;
-    min-width: 120px;
+    min-width: 100px;
 }
 
 .option-label {
@@ -269,12 +269,12 @@ body {
 }
 
 .opt-btn {
-    padding: 5px 14px;
+    padding: 5px 12px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 30px;
     background: transparent;
     color: #777;
-    font-size: 12px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.3s;
     font-family: inherit;
@@ -447,10 +447,6 @@ body {
 
 .status-item.success .status-text {
     color: #00d4ff;
-}
-
-.status-item.error .status-text {
-    color: #ff6b6b;
 }
 
 /* ===== LOG ===== */
