@@ -1,7 +1,10 @@
 // ================================================================
-// 🐭 mouseDZ-ai - توليد فيديوهات محلياً
-// بدون أي API خارجي - مجاني بالكامل
+// 🐭 mouseDZ-ai - توليد فيديوهات بالذكاء الاصطناعي
+// المفتاح: r8_FAkCDVNQr3V0CRhyL7XxfhdwlZ8Ah1b2RjC2i
 // ================================================================
+
+// ====== 🔑 المفتاح ======
+const REPLICATE_API_TOKEN = 'r8_FAkCDVNQr3V0CRhyL7XxfhdwlZ8Ah1b2RjC2i';
 
 // ====== STATE ======
 const state = {
@@ -9,7 +12,6 @@ const state = {
     isGenerating: false,
     selectedDuration: '5',
     selectedAspect: '16:9',
-    selectedStyle: 'cinematic',
     uploadedImage: null,
     currentVideoUrl: null,
 };
@@ -27,7 +29,6 @@ const dom = {
     tabContents: $$('.tab-content'),
     durationBtns: $$('#durationGroup .opt-btn'),
     aspectBtns: $$('#aspectGroup .opt-btn'),
-    styleBtns: $$('#styleGroup .opt-btn'),
     resultWrapper: $('#resultWrapper'),
     videoPlayer: $('#videoPlayer'),
     downloadBtn: $('#downloadBtn'),
@@ -58,7 +59,6 @@ function setLoading(isLoading) {
     dom.generateBtn.disabled = isLoading;
     dom.progressWrapper.style.display = isLoading ? 'block' : 'none';
     
-    // ✅ إخفاء/إظهار زر التواصل أثناء التوليد
     const socialLink = document.querySelector('.social-link');
     if (socialLink) {
         socialLink.style.opacity = isLoading ? '0.3' : '1';
@@ -92,7 +92,7 @@ dom.downloadBtn.addEventListener('click', () => {
     }
     const a = document.createElement('a');
     a.href = state.currentVideoUrl;
-    a.download = `mouseDZ_ai_${Date.now()}.webm`;
+    a.download = `mouseDZ_ai_${Date.now()}.mp4`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -183,256 +183,89 @@ function setupOptions(buttons, stateKey) {
 }
 setupOptions(dom.durationBtns, 'selectedDuration');
 setupOptions(dom.aspectBtns, 'selectedAspect');
-setupOptions(dom.styleBtns, 'selectedStyle');
 
 // ================================================================
-// 🎯 قلب المشروع: توليد الفيديو باستخدام Canvas
+// 🎯 توليد الفيديو بالذكاء الاصطناعي (Replicate)
 // ================================================================
 
-function getDimensions(aspect) {
-    const sizes = {
-        '16:9': { width: 854, height: 480 },
-        '9:16': { width: 480, height: 854 },
-        '1:1': { width: 512, height: 512 },
+async function uploadImageToReplicate(imageBase64) {
+    const response = await fetch('https://api.replicate.com/v1/files', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ file: imageBase64 }),
+    });
+    
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`فشل رفع الصورة: ${error}`);
+    }
+    
+    const data = await response.json();
+    return data.url;
+}
+
+async function generateVideoWithAI(prompt, imageUrl = null) {
+    const input = {
+        prompt: prompt,
+        fps: 30,
+        motion_bucket_id: 127,
+        noise_aug_strength: 0.02,
+        frames: parseInt(state.selectedDuration) * 30,
     };
-    return sizes[aspect] || sizes['16:9'];
-}
-
-function getStyleColors(style) {
-    const styles = {
-        cinematic: { bg1: '#0a1628', bg2: '#1a2a4a', accent1: '#00d4ff', accent2: '#a855f7', text: '#ffffff' },
-        anime: { bg1: '#1a0a2a', bg2: '#2a1a4a', accent1: '#ff6bff', accent2: '#00ffcc', text: '#ffe6ff' },
-        vintage: { bg1: '#2a1a0a', bg2: '#4a2a1a', accent1: '#ffd93d', accent2: '#ff6b6b', text: '#ffeedd' },
-    };
-    return styles[style] || styles.cinematic;
-}
-
-// ====== توليد فيديو من النص ======
-async function generateTextVideo(prompt, duration, aspect, style) {
-    const dims = getDimensions(aspect);
-    const colors = getStyleColors(style);
-    const fps = 30;
-    const totalFrames = duration * fps;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = dims.width;
-    canvas.height = dims.height;
-    const ctx = canvas.getContext('2d');
-
-    const stream = canvas.captureStream(fps);
-    const recorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp9',
+    
+    if (imageUrl) {
+        input.input_image = imageUrl;
+    }
+    
+    const response = await fetch('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            version: 'stability-ai/stable-video-diffusion:3f0457e4619daac51203dedb472816fd4af51f3149fa7a9e0b5ffcf1b8172438',
+            input: input,
+        }),
     });
-
-    const chunks = [];
-    recorder.ondataavailable = (e) => chunks.push(e.data);
-
-    return new Promise((resolve, reject) => {
-        recorder.start();
-
-        let frame = 0;
-        const interval = setInterval(() => {
-            if (frame >= totalFrames) {
-                clearInterval(interval);
-                recorder.stop();
-                return;
-            }
-
-            const progress = frame / totalFrames;
-            updateProgress((progress) * 100, `⏳ توليد الإطار ${frame + 1}/${totalFrames}`);
-
-            // ====== رسم الخلفية ======
-            const gradient = ctx.createLinearGradient(0, 0, dims.width, dims.height);
-            const hue1 = (progress * 60 + 220) % 360;
-            const hue2 = (progress * 60 + 280) % 360;
-            gradient.addColorStop(0, `hsl(${hue1}, 70%, 15%)`);
-            gradient.addColorStop(0.5, `hsl(${(hue1 + hue2) / 2}, 60%, 25%)`);
-            gradient.addColorStop(1, `hsl(${hue2}, 70%, 15%)`);
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, dims.width, dims.height);
-
-            // ====== رسم دوائر متحركة ======
-            for (let i = 0; i < 15; i++) {
-                const x = (i * 60 + frame * 2) % dims.width;
-                const y = (i * 40 + frame * 1.5) % dims.height;
-                const radius = 15 + Math.sin(frame * 0.02 + i) * 8;
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fillStyle = `hsla(${(hue1 + i * 20) % 360}, 80%, 60%, 0.2)`;
-                ctx.fill();
-            }
-
-            // ====== رسم النص ======
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 20;
-
-            const fontSize = Math.min(dims.width, dims.height) / 12;
-            ctx.font = `bold ${fontSize}px 'Segoe UI', system-ui, sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            const text = prompt.length > 60 ? prompt.substring(0, 57) + '...' : prompt;
-            const words = text.split(' ');
-            let lines = [];
-            let currentLine = '';
-            for (let word of words) {
-                if ((currentLine + ' ' + word).length < 40) {
-                    currentLine += (currentLine ? ' ' : '') + word;
-                } else {
-                    if (currentLine) lines.push(currentLine);
-                    currentLine = word;
-                }
-            }
-            if (currentLine) lines.push(currentLine);
-
-            const lineHeight = fontSize * 1.4;
-            const startY = dims.height / 2 - (lines.length - 1) * lineHeight / 2;
-
-            ctx.shadowColor = 'rgba(0,0,0,0.5)';
-            ctx.shadowBlur = 15;
-
-            lines.forEach((line, i) => {
-                const y = startY + i * lineHeight;
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                ctx.fillText(line, dims.width / 2 + 2, y + 2);
-                const gradientText = ctx.createLinearGradient(0, y - fontSize / 2, 0, y + fontSize / 2);
-                gradientText.addColorStop(0, colors.accent1);
-                gradientText.addColorStop(1, colors.accent2);
-                ctx.fillStyle = gradientText;
-                ctx.fillText(line, dims.width / 2, y);
-            });
-
-            // ====== إطار سينمائي ======
-            ctx.shadowBlur = 0;
-            ctx.strokeStyle = `rgba(255, 255, 255, 0.05)`;
-            ctx.lineWidth = 2;
-            ctx.strokeRect(10, 10, dims.width - 20, dims.height - 20);
-
-            ctx.fillStyle = `rgba(0, 0, 0, 0.4)`;
-            ctx.fillRect(0, dims.height - 40, dims.width, 40);
-            ctx.fillStyle = `rgba(255, 255, 255, 0.3)`;
-            ctx.font = `12px 'Segoe UI', sans-serif`;
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(`🐭 mouseDZ-ai · ${style} · ${duration}s`, 20, dims.height - 20);
-
-            ctx.textAlign = 'right';
-            ctx.fillText(`#${frame + 1}/${totalFrames}`, dims.width - 20, dims.height - 20);
-
-            frame++;
-        }, 1000 / fps);
-
-        recorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'video/webm' });
-            resolve(URL.createObjectURL(blob));
-        };
-
-        recorder.onerror = (e) => reject(e);
-    });
-}
-
-// ====== توليد فيديو من الصورة ======
-async function generateImageVideo(prompt, imageData, duration, aspect, style) {
-    const dims = getDimensions(aspect);
-    const colors = getStyleColors(style);
-    const fps = 30;
-    const totalFrames = duration * fps;
-
-    const img = new Image();
-    img.src = imageData;
-    await new Promise((resolve) => { img.onload = resolve; });
-
-    const canvas = document.createElement('canvas');
-    canvas.width = dims.width;
-    canvas.height = dims.height;
-    const ctx = canvas.getContext('2d');
-
-    const stream = canvas.captureStream(fps);
-    const recorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp9',
-    });
-
-    const chunks = [];
-    recorder.ondataavailable = (e) => chunks.push(e.data);
-
-    return new Promise((resolve, reject) => {
-        recorder.start();
-
-        let frame = 0;
-        const interval = setInterval(() => {
-            if (frame >= totalFrames) {
-                clearInterval(interval);
-                recorder.stop();
-                return;
-            }
-
-            const progress = frame / totalFrames;
-            updateProgress(progress * 100, `⏳ توليد الإطار ${frame + 1}/${totalFrames}`);
-
-            ctx.clearRect(0, 0, dims.width, dims.height);
-
-            const bgGrad = ctx.createRadialGradient(
-                dims.width / 2, dims.height / 2, 0,
-                dims.width / 2, dims.height / 2, dims.width / 1.5
-            );
-            bgGrad.addColorStop(0, `hsl(${220 + progress * 30}, 50%, 15%)`);
-            bgGrad.addColorStop(1, `hsl(${240 + progress * 30}, 60%, 8%)`);
-            ctx.fillStyle = bgGrad;
-            ctx.fillRect(0, 0, dims.width, dims.height);
-
-            const scale = 1 + Math.sin(progress * Math.PI * 2) * 0.03;
-            const rot = Math.sin(progress * Math.PI * 0.5) * 0.02;
-
-            ctx.save();
-            ctx.translate(dims.width / 2, dims.height / 2);
-            ctx.rotate(rot);
-            ctx.scale(scale, scale);
-            ctx.translate(-dims.width / 2, -dims.height / 2);
-
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 30;
-            ctx.drawImage(img, 0, 0, dims.width, dims.height);
-            ctx.shadowBlur = 0;
-            ctx.restore();
-
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 15;
-
-            ctx.fillStyle = `rgba(0, 0, 0, 0.5)`;
-            ctx.fillRect(0, dims.height - 60, dims.width, 60);
-
-            const fontSize = Math.min(dims.width, dims.height) / 20;
-            ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            const text = prompt.length > 50 ? prompt.substring(0, 47) + '...' : prompt;
-            const gradientText = ctx.createLinearGradient(0, dims.height - 50, 0, dims.height - 10);
-            gradientText.addColorStop(0, colors.accent1);
-            gradientText.addColorStop(1, colors.accent2);
-            ctx.fillStyle = gradientText;
-            ctx.fillText(text, dims.width / 2, dims.height - 30);
-
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = `rgba(255, 255, 255, 0.3)`;
-            ctx.font = `11px 'Segoe UI', sans-serif`;
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(`🐭 mouseDZ-ai · ${style} · ${duration}s`, 20, dims.height - 10);
-
-            ctx.textAlign = 'right';
-            ctx.fillText(`#${frame + 1}/${totalFrames}`, dims.width - 20, dims.height - 10);
-
-            frame++;
-        }, 1000 / fps);
-
-        recorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'video/webm' });
-            resolve(URL.createObjectURL(blob));
-        };
-
-        recorder.onerror = (e) => reject(e);
-    });
+    
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`فشل إنشاء المهمة: ${error}`);
+    }
+    
+    const prediction = await response.json();
+    const predictionId = prediction.id;
+    
+    let videoUrl = null;
+    for (let i = 0; i < 60; i++) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        updateProgress((i / 60) * 100, `⏳ جارٍ التوليد... ${Math.round((i / 60) * 100)}%`);
+        
+        const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+            headers: { 'Authorization': `Token ${REPLICATE_API_TOKEN}` },
+        });
+        
+        if (!statusResponse.ok) continue;
+        
+        const statusData = await statusResponse.json();
+        
+        if (statusData.status === 'succeeded') {
+            videoUrl = statusData.output;
+            break;
+        } else if (statusData.status === 'failed') {
+            throw new Error('فشل توليد الفيديو');
+        }
+    }
+    
+    if (!videoUrl) {
+        throw new Error('انتهى وقت الانتظار (أكثر من 3 دقائق)');
+    }
+    
+    return videoUrl;
 }
 
 // ====== التوليد الرئيسي ======
@@ -459,31 +292,33 @@ async function handleGenerate() {
     state.currentVideoUrl = null;
 
     try {
-        const duration = parseInt(state.selectedDuration);
-        const aspect = state.selectedAspect;
-        const style = state.selectedStyle;
-
         const modeNames = {
             'text2video': 'فيديو من نص',
             'image2video': 'فيديو من صورة'
         };
-        addLog(`🚀 بدء توليد ${modeNames[state.currentTab]}...`, 'info');
+        addLog(`🚀 بدء توليد ${modeNames[state.currentTab]} بالذكاء الاصطناعي...`, 'info');
         addLog(`📝 البرومبت: ${prompt.substring(0, 60)}...`, 'info');
-        addLog(`⏱️ المدة: ${duration} ثوان | 📐 النسبة: ${aspect} | 🎨 الأسلوب: ${style}`, 'info');
-
-        let videoUrl;
-        if (state.currentTab === 'text2video') {
-            videoUrl = await generateTextVideo(prompt, duration, aspect, style);
-        } else {
-            videoUrl = await generateImageVideo(prompt, state.uploadedImage, duration, aspect, style);
+        
+        let imageUrl = null;
+        if (state.uploadedImage) {
+            addLog('⏳ جارٍ رفع الصورة...', 'info');
+            imageUrl = await uploadImageToReplicate(state.uploadedImage);
+            addLog('✅ تم رفع الصورة', 'success');
         }
-
+        
+        addLog('⏳ جارٍ توليد الفيديو بالذكاء الاصطناعي (قد يستغرق 1-3 دقائق)...', 'info');
+        const videoUrl = await generateVideoWithAI(prompt, imageUrl);
+        
         showResult(videoUrl);
         addLog(`✅ تم التوليد بنجاح!`, 'success');
 
     } catch (error) {
         console.error('خطأ:', error);
-        addLog(`❌ فشل التوليد: ${error.message}`, 'error');
+        if (error.message.includes('401') || error.message.includes('token')) {
+            addLog('❌ مفتاح API غير صالح. تأكد من المفتاح', 'error');
+        } else {
+            addLog(`❌ فشل التوليد: ${error.message}`, 'error');
+        }
     } finally {
         setLoading(false);
         addLog('⏳ جاهز لتوليد جديد', 'info');
@@ -509,11 +344,10 @@ dom.promptImage.addEventListener('keydown', (e) => {
 
 // ====== INIT ======
 function init() {
-    addLog('🐭 جارٍ تهيئة mouseDZ-ai...', 'info');
-    addLog('💻 يعمل محلياً - بدون أي API', 'success');
+    addLog('🐭 mouseDZ-ai - ذكاء اصطناعي حقيقي', 'success');
+    addLog('🔑 مفتاح Replicate جاهز', 'success');
     addLog(`⏱️ المدة: ${state.selectedDuration} ثوان | 📐 النسبة: ${state.selectedAspect}`, 'info');
     addLog('💡 اضغط Ctrl+Enter للتوليد السريع', 'info');
-    addLog('✅ التطبيق جاهز!', 'success');
 }
 
 init();
