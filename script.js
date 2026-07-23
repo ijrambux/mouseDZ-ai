@@ -314,4 +314,214 @@ async function generateTextVideo(prompt, duration, aspect, style) {
 
             // رقم الإطار
             ctx.textAlign = 'right';
-            ctx.fillText(`#
+            ctx.fillText(`#${frame + 1}/${totalFrames}`, dims.width - 20, dims.height - 20);
+
+            frame++;
+        }, 1000 / fps);
+
+        recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            resolve(URL.createObjectURL(blob));
+        };
+
+        recorder.onerror = (e) => reject(e);
+    });
+}
+
+// ====== توليد فيديو من الصورة ======
+async function generateImageVideo(prompt, imageData, duration, aspect, style) {
+    const dims = getDimensions(aspect);
+    const colors = getStyleColors(style);
+    const fps = 30;
+    const totalFrames = duration * fps;
+
+    // تحميل الصورة
+    const img = new Image();
+    img.src = imageData;
+    await new Promise((resolve) => { img.onload = resolve; });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = dims.width;
+    canvas.height = dims.height;
+    const ctx = canvas.getContext('2d');
+
+    const stream = canvas.captureStream(fps);
+    const recorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp9',
+    });
+
+    const chunks = [];
+    recorder.ondataavailable = (e) => chunks.push(e.data);
+
+    return new Promise((resolve, reject) => {
+        recorder.start();
+
+        let frame = 0;
+        const interval = setInterval(() => {
+            if (frame >= totalFrames) {
+                clearInterval(interval);
+                recorder.stop();
+                return;
+            }
+
+            const progress = frame / totalFrames;
+            updateProgress(progress * 100, `⏳ توليد الإطار ${frame + 1}/${totalFrames}`);
+
+            // ====== رسم الصورة مع تأثيرات ======
+            ctx.clearRect(0, 0, dims.width, dims.height);
+
+            // خلفية
+            const bgGrad = ctx.createRadialGradient(
+                dims.width / 2, dims.height / 2, 0,
+                dims.width / 2, dims.height / 2, dims.width / 1.5
+            );
+            bgGrad.addColorStop(0, `hsl(${220 + progress * 30}, 50%, 15%)`);
+            bgGrad.addColorStop(1, `hsl(${240 + progress * 30}, 60%, 8%)`);
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, dims.width, dims.height);
+
+            // الصورة مع حركة بطيئة
+            const scale = 1 + Math.sin(progress * Math.PI * 2) * 0.03;
+            const rot = Math.sin(progress * Math.PI * 0.5) * 0.02;
+            const sx = (dims.width - dims.width * scale) / 2;
+            const sy = (dims.height - dims.height * scale) / 2;
+
+            ctx.save();
+            ctx.translate(dims.width / 2, dims.height / 2);
+            ctx.rotate(rot);
+            ctx.scale(scale, scale);
+            ctx.translate(-dims.width / 2, -dims.height / 2);
+
+            // تأثير الظل
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = 30;
+            ctx.drawImage(img, 0, 0, dims.width, dims.height);
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+            // ====== تراكب النص ======
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 15;
+
+            // شريط سفلي شفاف
+            ctx.fillStyle = `rgba(0, 0, 0, 0.5)`;
+            ctx.fillRect(0, dims.height - 60, dims.width, 60);
+
+            // النص
+            const fontSize = Math.min(dims.width, dims.height) / 20;
+            ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const text = prompt.length > 50 ? prompt.substring(0, 47) + '...' : prompt;
+            const gradientText = ctx.createLinearGradient(0, dims.height - 50, 0, dims.height - 10);
+            gradientText.addColorStop(0, colors.accent1);
+            gradientText.addColorStop(1, colors.accent2);
+            ctx.fillStyle = gradientText;
+            ctx.fillText(text, dims.width / 2, dims.height - 30);
+
+            // معلومات
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = `rgba(255, 255, 255, 0.3)`;
+            ctx.font = `11px 'Segoe UI', sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`🐭 mouseDZ-ai · ${style} · ${duration}s`, 20, dims.height - 10);
+
+            ctx.textAlign = 'right';
+            ctx.fillText(`#${frame + 1}/${totalFrames}`, dims.width - 20, dims.height - 10);
+
+            frame++;
+        }, 1000 / fps);
+
+        recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            resolve(URL.createObjectURL(blob));
+        };
+
+        recorder.onerror = (e) => reject(e);
+    });
+}
+
+// ====== التوليد الرئيسي ======
+async function handleGenerate() {
+    if (state.isGenerating) return;
+
+    const prompt = state.currentTab === 'text2video'
+        ? dom.prompt.value.trim()
+        : dom.promptImage.value.trim();
+
+    if (!prompt || prompt.length < 3) {
+        addLog('❌ الرجاء إدخال وصف (3 أحرف على الأقل)', 'error');
+        return;
+    }
+
+    if (state.currentTab === 'image2video' && !state.uploadedImage) {
+        addLog('❌ يرجى رفع صورة أولاً', 'error');
+        return;
+    }
+
+    setLoading(true);
+    dom.resultWrapper.classList.remove('show');
+    dom.videoPlayer.src = '';
+    state.currentVideoUrl = null;
+
+    try {
+        const duration = parseInt(state.selectedDuration);
+        const aspect = state.selectedAspect;
+        const style = state.selectedStyle;
+
+        const modeNames = {
+            'text2video': 'فيديو من نص',
+            'image2video': 'فيديو من صورة'
+        };
+        addLog(`🚀 بدء توليد ${modeNames[state.currentTab]}...`, 'info');
+        addLog(`📝 البرومبت: ${prompt.substring(0, 60)}...`, 'info');
+        addLog(`⏱️ المدة: ${duration} ثوان | 📐 النسبة: ${aspect} | 🎨 الأسلوب: ${style}`, 'info');
+
+        let videoUrl;
+        if (state.currentTab === 'text2video') {
+            videoUrl = await generateTextVideo(prompt, duration, aspect, style);
+        } else {
+            videoUrl = await generateImageVideo(prompt, state.uploadedImage, duration, aspect, style);
+        }
+
+        showResult(videoUrl);
+        addLog(`✅ تم التوليد بنجاح!`, 'success');
+
+    } catch (error) {
+        console.error('خطأ:', error);
+        addLog(`❌ فشل التوليد: ${error.message}`, 'error');
+    } finally {
+        setLoading(false);
+        addLog('⏳ جاهز لتوليد جديد', 'info');
+    }
+}
+
+// ====== EVENTS ======
+dom.generateBtn.addEventListener('click', handleGenerate);
+
+dom.prompt.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (state.currentTab === 'text2video') handleGenerate();
+    }
+});
+
+dom.promptImage.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (state.currentTab === 'image2video') handleGenerate();
+    }
+});
+
+// ====== INIT ======
+function init() {
+    addLog('🐭 جارٍ تهيئة mouseDZ-ai...', 'info');
+    addLog('💻 يعمل محلياً - بدون أي API أو إنترنت', 'success');
+    addLog(`⏱️ المدة: ${state.selectedDuration} ثوان | 📐 النسبة: ${state.selectedAspect}`, 'info');
+    addLog('💡 اضغط Ctrl+Enter للتوليد السريع', 'info');
+    addLog('✅ التطبيق جاهز!', 'success');
+}
+
+init();
