@@ -57,6 +57,14 @@ function setLoading(isLoading) {
     dom.generateBtn.classList.toggle('loading', isLoading);
     dom.generateBtn.disabled = isLoading;
     dom.progressWrapper.style.display = isLoading ? 'block' : 'none';
+    
+    // ✅ إخفاء/إظهار زر التواصل أثناء التوليد
+    const socialLink = document.querySelector('.social-link');
+    if (socialLink) {
+        socialLink.style.opacity = isLoading ? '0.3' : '1';
+        socialLink.style.pointerEvents = isLoading ? 'none' : 'auto';
+    }
+
     if (!isLoading) {
         dom.progressFill.style.width = '0%';
     }
@@ -258,7 +266,6 @@ async function generateTextVideo(prompt, duration, aspect, style) {
             ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
             ctx.shadowBlur = 20;
 
-            // النص الرئيسي
             const fontSize = Math.min(dims.width, dims.height) / 12;
             ctx.font = `bold ${fontSize}px 'Segoe UI', system-ui, sans-serif`;
             ctx.textAlign = 'center';
@@ -286,10 +293,8 @@ async function generateTextVideo(prompt, duration, aspect, style) {
 
             lines.forEach((line, i) => {
                 const y = startY + i * lineHeight;
-                // ظل
                 ctx.fillStyle = 'rgba(0,0,0,0.3)';
                 ctx.fillText(line, dims.width / 2 + 2, y + 2);
-                // النص الرئيسي
                 const gradientText = ctx.createLinearGradient(0, y - fontSize / 2, 0, y + fontSize / 2);
                 gradientText.addColorStop(0, colors.accent1);
                 gradientText.addColorStop(1, colors.accent2);
@@ -303,7 +308,6 @@ async function generateTextVideo(prompt, duration, aspect, style) {
             ctx.lineWidth = 2;
             ctx.strokeRect(10, 10, dims.width - 20, dims.height - 20);
 
-            // شريط سفلي
             ctx.fillStyle = `rgba(0, 0, 0, 0.4)`;
             ctx.fillRect(0, dims.height - 40, dims.width, 40);
             ctx.fillStyle = `rgba(255, 255, 255, 0.3)`;
@@ -312,7 +316,6 @@ async function generateTextVideo(prompt, duration, aspect, style) {
             ctx.textBaseline = 'middle';
             ctx.fillText(`🐭 mouseDZ-ai · ${style} · ${duration}s`, 20, dims.height - 20);
 
-            // رقم الإطار
             ctx.textAlign = 'right';
             ctx.fillText(`#${frame + 1}/${totalFrames}`, dims.width - 20, dims.height - 20);
 
@@ -335,7 +338,6 @@ async function generateImageVideo(prompt, imageData, duration, aspect, style) {
     const fps = 30;
     const totalFrames = duration * fps;
 
-    // تحميل الصورة
     const img = new Image();
     img.src = imageData;
     await new Promise((resolve) => { img.onload = resolve; });
@@ -367,10 +369,8 @@ async function generateImageVideo(prompt, imageData, duration, aspect, style) {
             const progress = frame / totalFrames;
             updateProgress(progress * 100, `⏳ توليد الإطار ${frame + 1}/${totalFrames}`);
 
-            // ====== رسم الصورة مع تأثيرات ======
             ctx.clearRect(0, 0, dims.width, dims.height);
 
-            // خلفية
             const bgGrad = ctx.createRadialGradient(
                 dims.width / 2, dims.height / 2, 0,
                 dims.width / 2, dims.height / 2, dims.width / 1.5
@@ -380,11 +380,8 @@ async function generateImageVideo(prompt, imageData, duration, aspect, style) {
             ctx.fillStyle = bgGrad;
             ctx.fillRect(0, 0, dims.width, dims.height);
 
-            // الصورة مع حركة بطيئة
             const scale = 1 + Math.sin(progress * Math.PI * 2) * 0.03;
             const rot = Math.sin(progress * Math.PI * 0.5) * 0.02;
-            const sx = (dims.width - dims.width * scale) / 2;
-            const sy = (dims.height - dims.height * scale) / 2;
 
             ctx.save();
             ctx.translate(dims.width / 2, dims.height / 2);
@@ -392,22 +389,18 @@ async function generateImageVideo(prompt, imageData, duration, aspect, style) {
             ctx.scale(scale, scale);
             ctx.translate(-dims.width / 2, -dims.height / 2);
 
-            // تأثير الظل
             ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
             ctx.shadowBlur = 30;
             ctx.drawImage(img, 0, 0, dims.width, dims.height);
             ctx.shadowBlur = 0;
             ctx.restore();
 
-            // ====== تراكب النص ======
             ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
             ctx.shadowBlur = 15;
 
-            // شريط سفلي شفاف
             ctx.fillStyle = `rgba(0, 0, 0, 0.5)`;
             ctx.fillRect(0, dims.height - 60, dims.width, 60);
 
-            // النص
             const fontSize = Math.min(dims.width, dims.height) / 20;
             ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
             ctx.textAlign = 'center';
@@ -420,7 +413,6 @@ async function generateImageVideo(prompt, imageData, duration, aspect, style) {
             ctx.fillStyle = gradientText;
             ctx.fillText(text, dims.width / 2, dims.height - 30);
 
-            // معلومات
             ctx.shadowBlur = 0;
             ctx.fillStyle = `rgba(255, 255, 255, 0.3)`;
             ctx.font = `11px 'Segoe UI', sans-serif`;
@@ -518,7 +510,7 @@ dom.promptImage.addEventListener('keydown', (e) => {
 // ====== INIT ======
 function init() {
     addLog('🐭 جارٍ تهيئة mouseDZ-ai...', 'info');
-    addLog('💻 يعمل محلياً - بدون أي API أو إنترنت', 'success');
+    addLog('💻 يعمل محلياً - بدون أي API', 'success');
     addLog(`⏱️ المدة: ${state.selectedDuration} ثوان | 📐 النسبة: ${state.selectedAspect}`, 'info');
     addLog('💡 اضغط Ctrl+Enter للتوليد السريع', 'info');
     addLog('✅ التطبيق جاهز!', 'success');
