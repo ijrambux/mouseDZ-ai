@@ -8,40 +8,40 @@
 </head>
 <body>
     <div class="container">
-        <!-- HEADER -->
+        <!-- ===== HEADER ===== -->
         <header class="header">
             <div class="logo-wrapper">
                 <span class="logo-emoji">🐭</span>
                 <h1 class="logo">mouse<span class="logo-highlight">DZ</span>-ai</h1>
             </div>
-            <p class="subtitle">توليد فيديوهات احترافية بالذكاء الاصطناعي</p>
+            <p class="subtitle">توليد فيديوهات بالذكاء الاصطناعي - <strong>بدون مفتاح API</strong></p>
             <div class="badges">
-                <span class="badge free">✨ مجاني للاختبار</span>
-                <span class="badge beta">🧪 نسخة عملية</span>
+                <span class="badge free">✨ مجاني بالكامل</span>
+                <span class="badge local">💻 يعمل محلياً</span>
             </div>
         </header>
 
-        <!-- TABS -->
+        <!-- ===== TABS ===== -->
         <nav class="tabs">
             <button class="tab-btn active" data-tab="text2video">📹 نص إلى فيديو</button>
             <button class="tab-btn" data-tab="image2video">🖼️ صورة إلى فيديو</button>
         </nav>
 
-        <!-- TAB: نص إلى فيديو -->
+        <!-- ===== TAB: نص إلى فيديو ===== -->
         <div class="tab-content active" id="tab-text2video">
             <div class="form-group">
                 <label for="promptInput">📝 وصف الفيديو</label>
-                <textarea id="promptInput" rows="4" placeholder="مثلاً: غروب شمس فوق جبال، بأسلوب سينمائي">غروب شمس فوق جبال الأطلس، بأسلوب سينمائي، ألوان دافئة</textarea>
+                <textarea id="promptInput" rows="4" placeholder="مثلاً: غروب شمس فوق جبال، بأسلوب سينمائي">غروب شمس فوق جبال الأطلس، بأسلوب سينمائي</textarea>
             </div>
         </div>
 
-        <!-- TAB: صورة إلى فيديو -->
+        <!-- ===== TAB: صورة إلى فيديو ===== -->
         <div class="tab-content" id="tab-image2video">
             <div class="form-group">
                 <label for="promptInputImage">📝 وصف الحركة</label>
-                <textarea id="promptInputImage" rows="3" placeholder="مثلاً: تحريك الصورة بسلاسة مع تأثيرات ضوئية">تحريك الصورة بسلاسة مع تأثيرات ضوئية</textarea>
+                <textarea id="promptInputImage" rows="3" placeholder="مثلاً: تحريك الصورة بسلاسة مع تأثيرات">تحريك الصورة بسلاسة مع تأثيرات ضوئية</textarea>
             </div>
-            <div class="image-upload-area" id="imageUploadArea">
+            <div class="image-upload-area">
                 <div class="upload-box" id="uploadBox">
                     <span class="upload-icon">🖼️</span>
                     <p><strong>انقر أو اسحب</strong> صورة هنا</p>
@@ -55,14 +55,14 @@
             </div>
         </div>
 
-        <!-- OPTIONS -->
+        <!-- ===== OPTIONS ===== -->
         <div class="options-row">
             <div class="option-group">
                 <span class="option-label">⏱️ المدة</span>
                 <div class="option-buttons" id="durationGroup">
-                    <button class="opt-btn" data-value="5">5 ث</button>
-                    <button class="opt-btn active" data-value="10">10 ث</button>
-                    <button class="opt-btn" data-value="15">15 ث</button>
+                    <button class="opt-btn" data-value="3">3 ث</button>
+                    <button class="opt-btn active" data-value="5">5 ث</button>
+                    <button class="opt-btn" data-value="10">10 ث</button>
                 </div>
             </div>
             <div class="option-group">
@@ -73,15 +73,23 @@
                     <button class="opt-btn" data-value="1:1">1:1</button>
                 </div>
             </div>
+            <div class="option-group">
+                <span class="option-label">🎨 الأسلوب</span>
+                <div class="option-buttons" id="styleGroup">
+                    <button class="opt-btn active" data-value="cinematic">سينمائي</button>
+                    <button class="opt-btn" data-value="anime">أنمي</button>
+                    <button class="opt-btn" data-value="vintage">كلاسيكي</button>
+                </div>
+            </div>
         </div>
 
-        <!-- GENERATE BUTTON -->
+        <!-- ===== GENERATE BUTTON ===== -->
         <button class="generate-btn" id="generateBtn">
             <span class="btn-text">🚀 توليد الفيديو</span>
             <span class="spinner"></span>
         </button>
 
-        <!-- PROGRESS -->
+        <!-- ===== PROGRESS ===== -->
         <div class="progress-wrapper" id="progressWrapper" style="display: none;">
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill"></div>
@@ -89,7 +97,7 @@
             <div class="progress-text" id="progressText">جارٍ التوليد...</div>
         </div>
 
-        <!-- RESULT -->
+        <!-- ===== RESULT ===== -->
         <div class="result-wrapper" id="resultWrapper">
             <video id="videoPlayer" controls></video>
             <div class="result-controls">
@@ -98,18 +106,18 @@
             </div>
         </div>
 
-        <!-- STATUS -->
+        <!-- ===== STATUS ===== -->
         <div class="status-box">
-            <div class="status-item" id="statusApi">
-                <span class="status-icon">🔑</span>
-                <span class="status-text">التحقق من المفتاح...</span>
+            <div class="status-item success">
+                <span class="status-icon">✅</span>
+                <span class="status-text">يعمل محلياً - بدون إنترنت</span>
             </div>
         </div>
 
-        <!-- LOG -->
+        <!-- ===== LOG ===== -->
         <div class="log-box" id="logBox">
             <div class="log-entry info"><span class="time">[الآن]</span> 🐭 مرحباً بك في mouseDZ-ai!</div>
-            <div class="log-entry info"><span class="time">[الآن]</span> 📝 اكتب وصفاً واحصل على فيديو</div>
+            <div class="log-entry info"><span class="time">[الآن]</span> 📝 اكتب وصفاً واحصل على فيديو مجاناً</div>
         </div>
     </div>
 
