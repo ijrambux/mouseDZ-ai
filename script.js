@@ -1,10 +1,10 @@
 // ================================================================
-// 🐭 mouseDZ-ai - توليد فيديوهات بالذكاء الاصطناعي
-// المفتاح: r8_FAkCDVNQr3V0CRhyL7XxfhdwlZ8Ah1b2RjC2i
+// 🐭 mouseDZ-ai - توليد فيديوهات عبر Together AI
+// المفتاح: key_CdK43e1sfVRnMboRMucoF
 // ================================================================
 
 // ====== 🔑 المفتاح ======
-const REPLICATE_API_TOKEN = 'r8_FAkCDVNQr3V0CRhyL7XxfhdwlZ8Ah1b2RjC2i';
+const TOGETHER_API_KEY = 'key_CdK43e1sfVRnMboRMucoF';
 
 // ====== STATE ======
 const state = {
@@ -101,28 +101,16 @@ dom.downloadBtn.addEventListener('click', () => {
 
 // ====== IMAGE UPLOAD ======
 dom.uploadBox.addEventListener('click', () => dom.imageInput.click());
-
-dom.uploadBox.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dom.uploadBox.classList.add('dragover');
-});
-
-dom.uploadBox.addEventListener('dragleave', () => {
-    dom.uploadBox.classList.remove('dragover');
-});
-
+dom.uploadBox.addEventListener('dragover', (e) => { e.preventDefault(); dom.uploadBox.classList.add('dragover'); });
+dom.uploadBox.addEventListener('dragleave', () => { dom.uploadBox.classList.remove('dragover'); });
 dom.uploadBox.addEventListener('drop', (e) => {
     e.preventDefault();
     dom.uploadBox.classList.remove('dragover');
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        handleImageFile(e.dataTransfer.files[0]);
-    }
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleImageFile(e.dataTransfer.files[0]);
 });
 
 dom.imageInput.addEventListener('change', function() {
-    if (this.files && this.files[0]) {
-        handleImageFile(this.files[0]);
-    }
+    if (this.files && this.files[0]) handleImageFile(this.files[0]);
 });
 
 function handleImageFile(file) {
@@ -185,51 +173,48 @@ setupOptions(dom.durationBtns, 'selectedDuration');
 setupOptions(dom.aspectBtns, 'selectedAspect');
 
 // ================================================================
-// 🎯 توليد الفيديو بالذكاء الاصطناعي (Replicate)
+// 🎯 توليد الفيديو عبر Together AI
 // ================================================================
 
-async function uploadImageToReplicate(imageBase64) {
-    const response = await fetch('https://api.replicate.com/v1/files', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Token ${REPLICATE_API_TOKEN}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ file: imageBase64 }),
-    });
-    
-    if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`فشل رفع الصورة: ${error}`);
-    }
-    
-    const data = await response.json();
-    return data.url;
+async function uploadImageToTogether(imageBase64) {
+    // Together AI يقبل الصور كـ URL أو base64 مباشرة
+    // نعيد base64 كما هو
+    return imageBase64;
 }
 
-async function generateVideoWithAI(prompt, imageUrl = null) {
-    const input = {
+async function generateVideoWithTogether(prompt, imageBase64 = null) {
+    // ====== بناء الطلب ======
+    // استخدام نموذج Wan 2.7 I2V (يدعم الصور) أو T2V [citation:3][citation:8]
+    const model = imageBase64 ? 'Wan-AI/wan2.7-i2v' : 'Wan-AI/wan2.7-t2v';
+    
+    const payload = {
+        model: model,
         prompt: prompt,
-        fps: 30,
-        motion_bucket_id: 127,
-        noise_aug_strength: 0.02,
-        frames: parseInt(state.selectedDuration) * 30,
+        resolution: '720P',
+        ratio: state.selectedAspect,
+        seconds: state.selectedDuration,
     };
     
-    if (imageUrl) {
-        input.input_image = imageUrl;
+    // ====== إضافة الصورة إن وجدت ======
+    if (imageBase64) {
+        payload.media = {
+            frame_images: [
+                {
+                    input_image: imageBase64,
+                    frame: 'first'
+                }
+            ]
+        };
     }
     
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
+    // ====== إرسال الطلب ======
+    const response = await fetch('https://api.together.ai/v2/videos', {
         method: 'POST',
         headers: {
-            'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+            'Authorization': `Bearer ${TOGETHER_API_KEY}`,
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            version: 'stability-ai/stable-video-diffusion:3f0457e4619daac51203dedb472816fd4af51f3149fa7a9e0b5ffcf1b8172438',
-            input: input,
-        }),
+        body: JSON.stringify(payload),
     });
     
     if (!response.ok) {
@@ -237,27 +222,29 @@ async function generateVideoWithAI(prompt, imageUrl = null) {
         throw new Error(`فشل إنشاء المهمة: ${error}`);
     }
     
-    const prediction = await response.json();
-    const predictionId = prediction.id;
+    const job = await response.json();
+    const jobId = job.id;
+    addLog(`📋 Job ID: ${jobId}`, 'info');
     
+    // ====== انتظار النتيجة (Polling) ======
     let videoUrl = null;
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 80; i++) {
         await new Promise(resolve => setTimeout(resolve, 3000));
-        updateProgress((i / 60) * 100, `⏳ جارٍ التوليد... ${Math.round((i / 60) * 100)}%`);
+        updateProgress((i / 80) * 100, `⏳ جارٍ التوليد... ${Math.round((i / 80) * 100)}%`);
         
-        const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-            headers: { 'Authorization': `Token ${REPLICATE_API_TOKEN}` },
+        const statusResponse = await fetch(`https://api.together.ai/v2/videos/${jobId}`, {
+            headers: { 'Authorization': `Bearer ${TOGETHER_API_KEY}` },
         });
         
         if (!statusResponse.ok) continue;
         
         const statusData = await statusResponse.json();
         
-        if (statusData.status === 'succeeded') {
-            videoUrl = statusData.output;
+        if (statusData.status === 'completed') {
+            videoUrl = statusData.outputs.video_url;
             break;
         } else if (statusData.status === 'failed') {
-            throw new Error('فشل توليد الفيديو');
+            throw new Error(`فشل التوليد: ${statusData.error?.message || 'خطأ غير معروف'}`);
         }
     }
     
@@ -293,29 +280,32 @@ async function handleGenerate() {
 
     try {
         const modeNames = {
-            'text2video': 'فيديو من نص',
-            'image2video': 'فيديو من صورة'
+            'text2video': 'فيديو من نص (Wan 2.7 T2V)',
+            'image2video': 'فيديو من صورة (Wan 2.7 I2V)'
         };
-        addLog(`🚀 بدء توليد ${modeNames[state.currentTab]} بالذكاء الاصطناعي...`, 'info');
+        addLog(`🚀 بدء توليد ${modeNames[state.currentTab]}...`, 'info');
         addLog(`📝 البرومبت: ${prompt.substring(0, 60)}...`, 'info');
+        addLog(`⏱️ المدة: ${state.selectedDuration} ثوان | 📐 النسبة: ${state.selectedAspect}`, 'info');
         
-        let imageUrl = null;
+        let imageData = null;
         if (state.uploadedImage) {
-            addLog('⏳ جارٍ رفع الصورة...', 'info');
-            imageUrl = await uploadImageToReplicate(state.uploadedImage);
-            addLog('✅ تم رفع الصورة', 'success');
+            addLog('📷 جارٍ تجهيز الصورة...', 'info');
+            imageData = state.uploadedImage;
+            addLog('✅ تم تجهيز الصورة', 'success');
         }
         
-        addLog('⏳ جارٍ توليد الفيديو بالذكاء الاصطناعي (قد يستغرق 1-3 دقائق)...', 'info');
-        const videoUrl = await generateVideoWithAI(prompt, imageUrl);
+        addLog('⏳ جارٍ توليد الفيديو عبر Together AI (قد يستغرق 1-3 دقائق)...', 'info');
+        const videoUrl = await generateVideoWithTogether(prompt, imageData);
         
         showResult(videoUrl);
         addLog(`✅ تم التوليد بنجاح!`, 'success');
 
     } catch (error) {
         console.error('خطأ:', error);
-        if (error.message.includes('401') || error.message.includes('token')) {
+        if (error.message.includes('401') || error.message.includes('Unauthorized')) {
             addLog('❌ مفتاح API غير صالح. تأكد من المفتاح', 'error');
+        } else if (error.message.includes('insufficient')) {
+            addLog('❌ رصيد غير كافٍ. يرجى شحن حساب Together AI', 'error');
         } else {
             addLog(`❌ فشل التوليد: ${error.message}`, 'error');
         }
@@ -344,8 +334,9 @@ dom.promptImage.addEventListener('keydown', (e) => {
 
 // ====== INIT ======
 function init() {
-    addLog('🐭 mouseDZ-ai - ذكاء اصطناعي حقيقي', 'success');
-    addLog('🔑 مفتاح Replicate جاهز', 'success');
+    addLog('🐭 mouseDZ-ai - Together AI', 'success');
+    addLog('🔑 مفتاح Together AI جاهز', 'success');
+    addLog('🧠 النماذج: Wan 2.7 T2V / I2V', 'info');
     addLog(`⏱️ المدة: ${state.selectedDuration} ثوان | 📐 النسبة: ${state.selectedAspect}`, 'info');
     addLog('💡 اضغط Ctrl+Enter للتوليد السريع', 'info');
 }
